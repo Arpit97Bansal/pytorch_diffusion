@@ -207,6 +207,8 @@ class Diffusion(object):
                 x = torch.randn(n, self.model.in_channels, self.model.resolution, self.model.resolution)
                 x = x.to(self.device)
 
+            print(n_steps, curr_step)
+
             for i in progress_bar(reversed(range(curr_step-n_steps, curr_step)), total=n_steps):
                 t = (torch.ones(n)*i).to(self.device)
                 x, x0 = denoising_step(x,
@@ -221,6 +223,70 @@ class Diffusion(object):
                 callback(x, i, x0=x0)
 
             return x
+
+    def back(self, n, n_steps=None, x=None, curr_step=None,
+                progress_bar=lambda i, total=None: i,
+                callback=lambda x, i, x0=None: None, with_grad=False):
+
+        if with_grad:
+            i = curr_step
+            while (i):
+                t = (torch.ones(n) * i).to(self.device)
+                x, x0 = denoising_step(x,
+                                       t=t,
+                                       model=self.model.eval(),
+                                       logvar=self.logvar,
+                                       sqrt_recip_alphas_cumprod=self.sqrt_recip_alphas_cumprod,
+                                       sqrt_recipm1_alphas_cumprod=self.sqrt_recipm1_alphas_cumprod,
+                                       posterior_mean_coef1=self.posterior_mean_coef1,
+                                       posterior_mean_coef2=self.posterior_mean_coef2,
+                                       return_pred_xstart=True)
+                callback(x, i, x0=x0)
+                i = i - 1
+
+            return x
+        else:
+            with torch.no_grad():
+                i=curr_step
+                while(i):
+                    t = (torch.ones(n)*i).to(self.device)
+                    x, x0 = denoising_step(x,
+                                           t=t,
+                                           model=self.model.eval(),
+                                           logvar=self.logvar,
+                                           sqrt_recip_alphas_cumprod=self.sqrt_recip_alphas_cumprod,
+                                           sqrt_recipm1_alphas_cumprod=self.sqrt_recipm1_alphas_cumprod,
+                                           posterior_mean_coef1=self.posterior_mean_coef1,
+                                           posterior_mean_coef2=self.posterior_mean_coef2,
+                                           return_pred_xstart=True)
+                    callback(x, i, x0=x0)
+                    i=i-1
+
+                return x
+
+    def front(self, n, n_steps=None, x=None, curr_step=None,
+                progress_bar=lambda i, total=None: i,
+                callback=lambda x, i: None):
+
+        if curr_step is None:
+            curr_step = 0
+
+        assert curr_step < self.num_timesteps, curr_step
+
+        if n_steps is None or curr_step+n_steps > self.num_timesteps:
+            n_steps = self.num_timesteps-curr_step
+
+        assert x is not None
+
+        for i in progress_bar(range(curr_step, curr_step+n_steps), total=n_steps):
+            t = (torch.ones(n)*i).to(self.device)
+            x = diffusion_step(x,
+                               t=t,
+                               sqrt_alphas=self.sqrt_alphas,
+                               sqrt_one_minus_alphas=self.sqrt_one_minus_alphas)
+            callback(x, i+1)
+
+        return x
 
 
     def diffuse(self, n, n_steps=None, x=None, curr_step=None,

@@ -1,0 +1,2 @@
+from Cifar10_models.Resnet import ResNet18
+from Cifar10_models.With_Diffusion import model_with_diffusion
