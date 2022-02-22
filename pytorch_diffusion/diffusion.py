@@ -50,6 +50,12 @@ def diffusion_step(x, t, *,
         extract(sqrt_one_minus_alphas, t, x.shape) * noise
     )
 
+def salt_and_pepper(img, prob):
+    """salt and pepper noise for mnist"""
+    rnd = torch.randn_like(img)
+    rnd[rnd < prob] = 0
+    rnd[rnd > prob] = 1
+    return noisy
 
 def denoising_step(x, t, *,
                    model,

@@ -128,8 +128,10 @@ for i, data in enumerate(test_loader, 0):
 
     # mods on original image and the effect of it
     steps = 250
-    samples_diff = diffusion.diffuse(36, x=inputs, n_steps=steps)
+    samples_diff = diffusion.diffuse(36, x=(inputs*2 - 1), n_steps=steps)
     samples_dn = diffusion.back(36, x=samples_diff, curr_step=steps)
+    samples_dn = (samples_dn+1)*0.5
+
     outputs = model(samples_dn)
     max_vals, max_indices = torch.max(outputs, 1)
     correct = (max_indices == labels).sum().data.cpu().numpy() / max_indices.size()[0]
@@ -142,8 +144,10 @@ for i, data in enumerate(test_loader, 0):
 
 
     # mods on original image and the effect of it
-    samples_diff = diffusion.diffuse(36, x=adv_images, n_steps=steps)
+    samples_diff = diffusion.diffuse(36, x=(adv_images*2 -1), n_steps=steps)
     samples_dn = diffusion.back(36, x=samples_diff, curr_step=steps)
+    samples_dn = (samples_dn + 1) * 0.5
+
     outputs = model(samples_dn)
     max_vals, max_indices = torch.max(outputs, 1)
     correct = (max_indices == labels).sum().data.cpu().numpy() / max_indices.size()[0]
